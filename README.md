@@ -68,7 +68,7 @@ Coming soon - for now, clone the repo and import the langchainmemory module.
        
     if __name__ == '__main__':
 
-        app.run()
+        app.run(debug=True)
 ```
 
 
