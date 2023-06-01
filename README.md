@@ -1,10 +1,25 @@
-Flask-Langchain
+# Flask-Langchain
 ===============
+**Pre-release version. Not ready for production use.**
 
-Example usage
--------------
+Flask-Langchain is a Flask extension that provides a simple interface for
+using [Langchain](https://github.com/hwchase17/langchain) with Flask.
+Currently, it provides an SQLAlchemy based memory class for storing conversation histories,
+on a per-user or per-session basis, and a ChromaVectorStore class for storing document vectors (per-user only).
 
-```python
+To use, simply create a LangchainFlaskMemory object, passing in your Flask app and SQLAlchemy db object.
+Then, use the LangchainFlaskMemory object to create a ConversationFlaskMemory object, which can be passed
+to a Langchain chain as the memory parameter.
+
+Set the user id using the set_user_id method in your app's login callback. If no user id is set, the session id will be used.
+
+# Installation
+
+Coming soon - for now, clone the repo and import the langchainmemory module.
+
+# Example usage
+
+```
     from flask import Flask, request, jsonify
     from flask_sqlalchemy import SQLAlchemy
     import os
@@ -52,6 +67,4 @@ Example usage
        return str(chroma._collection.count())
 ```
 
-.. note::
 
-   Pre-release version. Not ready for production use.
