@@ -5,8 +5,6 @@ Example usage
 -------------
 
 .. code-block:: python
-   :linenos:
-
    from flask import Flask, request, jsonify
    from flask_sqlalchemy import SQLAlchemy
    import os
@@ -52,3 +50,7 @@ Example usage
    def count():
        chroma = langchain_memory._create_chroma_vector_store()
        return str(chroma._collection.count())
+
+.. note::
+
+   Pre-release version. Not ready for production use.
