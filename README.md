@@ -1,5 +1,4 @@
 # Flask-Langchain
-===============
 
 **Pre-release version. Not ready for production use.**
 
@@ -31,7 +30,7 @@ Coming soon - for now, clone the repo and import the langchainmemory module.
     app = Flask(__name__)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
-    app.secret_key = "wwiegnwiegwinEGInwelgnweG"
+    app.secret_key = "supersecretstring"
     db = SQLAlchemy(app)
 
     langchain_memory = LangchainFlaskMemory(app, db)
@@ -66,6 +65,10 @@ Coming soon - for now, clone the repo and import the langchainmemory module.
     def count():
        chroma = langchain_memory._create_chroma_vector_store()
        return str(chroma._collection.count())
+       
+    if __name__ == '__main__':
+
+        app.run()
 ```
 
 
