@@ -13,15 +13,28 @@ to a Langchain chain as the memory parameter.
 
 Set the user id using the set_user_id method in your app's login callback. If no user id is set, the session id will be used.
 
+# Overview
+Flask-Langchain adds a session and conversation id to the Flask session object, along with a user id if provided.
+After the extension is initialized, the LangchainFlaskMemory object exposes chat_memory and chroma_vector_store properties
+which can be used to create ConversationFlaskMemory and ChromaVectorStore objects, respectively.
+Messages are retrieved by conversation id, and document collections are organized by user id. If no user id is provided,
+the session id is used instead, allowing for anonymous users (note that some LLM providers, including OpenAI, discourage 
+the use of their APIs in unauthenticated contexts).
+
+These classes inherit from the Langchain BaseChatMemory and ChromaVectorStore classes, and can be used in the same way.
+
 # Installation
 
 Coming soon - for now, clone the repo and import the Flask-Langchain.extension module.
+
+Requires Flask-SQLAlchemy.
 
 # Known issues
 
 - Incorrect formatting of conversation history (as a string representation of a list of BaseMessages).
 - After it is initialized, you have to access the LangchainFlaskMemory object using `current_app.extensions['langchain_chat_memory']` - this could be improved
 - Test coverage may be incomplete
+- Supports in-memory Chroma database only
 
 # Example usage
 
