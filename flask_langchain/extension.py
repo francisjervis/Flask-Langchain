@@ -9,10 +9,10 @@ from langchain.schema import (
 )
 from langchain.memory.chat_memory import BaseChatMemory, BaseMemory
 from langchain.memory.utils import get_prompt_input_key
-
+from langchain.embeddings import OpenAIEmbeddings
 from sqlalchemy import Column
 import datetime
-import json
+import os
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import Field
@@ -58,6 +58,7 @@ class FlaskChatMessageHistory(BaseChatMessageHistory):
         :param conversation_id: The conversation ID to use for this chat message history.
 
         """
+
         self.table_name = table_name
         self.db = db
         self.langchain_session_id = langchain_session_id
@@ -76,24 +77,33 @@ class FlaskChatMessageHistory(BaseChatMessageHistory):
         if self.langchain_conversation_id is None:
             self.langchain_conversation_id = session.get('langchain_conversation_id', None)
 
-        else:
-            print("getting messages for conversation id: ", self.langchain_conversation_id)
-            result = self.db.execute(
-                "SELECT * FROM message_store WHERE conversation_id = :conversation_id ORDER BY timestamp DESC",
-                {'conversation_id': self.langchain_conversation_id})
+        print("getting messages for conversation id: ", self.langchain_conversation_id)
 
-            if result is None:
-                return []
+        found_messages = self.db.query(FlaskChatMessage).filter(FlaskChatMessage.conversation_id == self.langchain_conversation_id).all()
 
-            found_messages = [FlaskChatMessage(**dict(row)) for row in result]
+        if found_messages is None or len(found_messages) == 0:
+            print("no messages found")
+            return []
 
-            items = [json.loads(record.message) for record in found_messages]
-            print("got items: ", items)
+        print("found messages: ", found_messages)
+        for message in found_messages:
+            print("found message content: ", message.message)
 
-            messages = messages_from_dict(items)
-            print("returning messages: ", messages)
+        messages = []
+        for message in found_messages:
+            print("found message content: ", message.message)
+            if message.type == "human":
+                messages.append(HumanMessage(content=message.message, additional_kwargs={}))
+            elif message.type == "ai":
+                messages.append(AIMessage(content=message.message, additional_kwargs={}))
+            # elif message.type == "system":
+            #     messages.append(SystemMessage(content=message.message))
+            # elif message.type == "chat":
+            #     messages.append(ChatMessage(content=message.message))
+            else:
+                raise ValueError("Unknown message type: " + message.type)
 
-            return messages
+        return messages
 
     def add_user_message(self, message: str, langchain_session_id: str = None, langchain_user_id: str = None,
                          langchain_conversation_id: str = None) -> None:
@@ -125,14 +135,23 @@ class FlaskChatMessageHistory(BaseChatMessageHistory):
                 langchain_conversation_id = session.get('langchain_conversation_id', None)
 
         with self.db as dbsession:
-            jsonstr = json.dumps(_message_to_dict(message))
-            print("adding message to db: " + jsonstr, langchain_session_id, langchain_user_id, langchain_conversation_id)
+            m = _message_to_dict(message)
+            print("message to dict: ", m)
+            print(type(m))
+            content = m['data']['content']
+            additional_kwargs = m['data']['additional_kwargs']
+            example = m['data']['example']
+            m_type = m['type']
+
+            print("adding message to db: " + content, langchain_session_id, langchain_user_id, langchain_conversation_id)
             dbsession.add(
                 FlaskChatMessage(
                     langchain_session_id=langchain_session_id,
                     user_id=langchain_user_id,
                     conversation_id=langchain_conversation_id,
-                    message=jsonstr,
+                    message=content,
+                    message_kwargs=additional_kwargs,
+                    type=m_type,
                     timestamp=datetime.datetime.now(),
                 ))
             dbsession.commit()
@@ -175,6 +194,13 @@ class LangchainFlaskMemory:
         """
         self.app = app
         self.db = db
+
+        # if the extension has already been initialized, use that
+        # otherwise, initialize it
+        with self.app.app_context():
+            if hasattr(app.extensions, "langchain_chat_memory"):
+                print("found existing langchain_chat_memory")
+                return app.extensions["langchain_chat_memory"]
 
         with self.app.app_context():
             self.dbSession = db.session()
@@ -279,7 +305,19 @@ class LangchainFlaskMemory:
         if user_id is None:
             raise Exception("user_id is not set")
 
-        chroma = Chroma(persist_directory=persist_dir, collection_name=user_id)
+        openai_api_key = os.getenv("OPENAI_API_KEY", None)
+
+        if openai_api_key is None:
+            chroma = Chroma(persist_directory=persist_dir, collection_name=user_id)
+
+        else:
+            embeddings = OpenAIEmbeddings(
+                openai_api_key=openai_api_key,
+                model="text-embedding-ada-002",
+            )
+
+            chroma = Chroma(persist_directory=persist_dir, collection_name=user_id, embedding_function=embeddings)
+
         return chroma
 class ConversationFlaskMemory(BaseChatMemory):
     """
