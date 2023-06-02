@@ -15,7 +15,13 @@ Set the user id using the set_user_id method in your app's login callback. If no
 
 # Installation
 
-Coming soon - for now, clone the repo and import the langchainmemory module.
+Coming soon - for now, clone the repo and import the Flask-Langchain.extension module.
+
+# Known issues
+
+- Incorrect formatting of conversation history (as a string representation of a list of BaseMessages).
+- After it is initialized, you have to access the LangchainFlaskMemory object using `current_app.extensions['langchain_chat_memory']` - this could be improved
+- Test coverage may be incomplete
 
 # Example usage
 
